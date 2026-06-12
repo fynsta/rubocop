@@ -193,11 +193,13 @@ module RuboCop
         def check_expressions(node, expressions, insert_position)
           return if expressions.any?(&:nil?)
 
+          correctable = expressions.none? { |expression| comment_on_expression_line?(expression) }
           inserted_expression = false
 
           expressions.each do |expression|
             add_offense(expression) do |corrector|
               next if node.if_type? && (node.ternary? || node.then?)
+              next unless correctable
 
               range = range_by_whole_lines(expression.source_range, include_final_newline: true)
               corrector.remove(range)
@@ -231,6 +233,16 @@ module RuboCop
           else
             corrector.insert_before(node, "#{expression.source}\n")
           end
+        end
+
+        # The correction removes the whole lines of the duplicated expressions
+        # and re-inserts only the expression source, so a comment on those
+        # lines (but outside the expression itself) would be deleted.
+        def comment_on_expression_line?(expression)
+          comments = processed_source.each_comment_in_lines(
+            expression.first_line..expression.last_line
+          )
+          comments.any? { |comment| !expression.source_range.contains?(comment.source_range) }
         end
 
         def last_child_of_parent?(node)

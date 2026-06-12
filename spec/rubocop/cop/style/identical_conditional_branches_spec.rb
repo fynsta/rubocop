@@ -22,6 +22,47 @@ RSpec.describe RuboCop::Cop::Style::IdenticalConditionalBranches, :config do
     end
   end
 
+  context 'on if..else with identical bodies that have trailing comments' do
+    it 'registers an offense but does not correct' do
+      expect_offense(<<~RUBY)
+        if something
+          do_x # comment a
+          ^^^^ Move `do_x` out of the conditional.
+        else
+          do_x # comment b
+          ^^^^ Move `do_x` out of the conditional.
+        end
+      RUBY
+
+      expect_no_corrections
+    end
+  end
+
+  context 'on if..else with identical leading lines and a comment on another line' do
+    it 'registers and corrects an offense' do
+      expect_offense(<<~RUBY)
+        if something
+          do_x
+          ^^^^ Move `do_x` out of the conditional.
+          do_y # comment
+        else
+          do_x
+          ^^^^ Move `do_x` out of the conditional.
+          do_z
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        do_x
+        if something
+          do_y # comment
+        else
+          do_z
+        end
+      RUBY
+    end
+  end
+
   context 'on if..else with identical trailing lines' do
     it 'registers and corrects an offense' do
       expect_offense(<<~RUBY)
