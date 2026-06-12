@@ -61,10 +61,12 @@ module RuboCop
 
         def autocorrect(corrector, count, node, proc_name)
           if never_process?(count, node)
-            remove_node(corrector, node)
+            remove_node(corrector, node) unless comment_in_range?(removal_range(node))
           elsif !proc_name.empty?
             autocorrect_block_pass(corrector, node, proc_name)
           elsif node.block_type?
+            return if comment_outside_body?(node)
+
             autocorrect_block(corrector, node)
           end
         end
@@ -74,7 +76,24 @@ module RuboCop
         end
 
         def remove_node(corrector, node)
-          corrector.remove(range_by_whole_lines(node.source_range, include_final_newline: true))
+          corrector.remove(removal_range(node))
+        end
+
+        def removal_range(node)
+          range_by_whole_lines(node.source_range, include_final_newline: true)
+        end
+
+        def comment_in_range?(range)
+          processed_source.comments.any? { |comment| range.contains?(comment.source_range) }
+        end
+
+        # The block is replaced with only its body, so a comment within the
+        # block but outside the body (e.g. on the `do` line) would be deleted.
+        def comment_outside_body?(node)
+          processed_source.comments.any? do |comment|
+            node.source_range.contains?(comment.source_range) &&
+              !node.body.source_range.contains?(comment.source_range)
+          end
         end
 
         def autocorrect_block_pass(corrector, node, proc_name)

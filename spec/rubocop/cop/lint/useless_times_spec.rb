@@ -59,6 +59,67 @@ RSpec.describe RuboCop::Cop::Lint::UselessTimes, :config do
     RUBY
   end
 
+  it 'registers an offense but does not correct when `1.times` has a comment on the `do` line' do
+    expect_offense(<<~RUBY)
+      1.times do # comment
+      ^^^^^^^^^^^^^^^^^^^^ Useless call to `1.times` detected.
+        something
+      end
+    RUBY
+
+    expect_no_corrections
+  end
+
+  it 'registers an offense and corrects when `1.times` has a comment inside the block body' do
+    expect_offense(<<~RUBY)
+      1.times do
+      ^^^^^^^^^^ Useless call to `1.times` detected.
+        something
+        # comment
+        something_else
+      end
+    RUBY
+
+    expect_correction(<<~RUBY)
+      something
+      # comment
+      something_else
+    RUBY
+  end
+
+  it 'registers an offense and corrects when `1.times` has a comment after the block' do
+    expect_offense(<<~RUBY)
+      1.times do
+      ^^^^^^^^^^ Useless call to `1.times` detected.
+        something
+      end # comment
+    RUBY
+
+    expect_correction(<<~RUBY)
+      something # comment
+    RUBY
+  end
+
+  it 'registers an offense but does not correct when `0.times` has a comment inside the block' do
+    expect_offense(<<~RUBY)
+      0.times do
+      ^^^^^^^^^^ Useless call to `0.times` detected.
+        something # comment
+      end
+    RUBY
+
+    expect_no_corrections
+  end
+
+  it 'registers an offense but does not correct when `0.times` has a trailing comment' do
+    expect_offense(<<~RUBY)
+      0.times { something } # comment
+      ^^^^^^^^^^^^^^^^^^^^^ Useless call to `0.times` detected.
+    RUBY
+
+    expect_no_corrections
+  end
+
   it 'registers an offense but does not correct with 1.times with method chain' do
     expect_offense(<<~RUBY)
       1.times.reverse_each do
