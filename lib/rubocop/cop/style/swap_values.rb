@@ -36,7 +36,7 @@ module RuboCop
 
           add_offense(node, message: message(x_assign, y_assign)) do |corrector|
             range = correction_range(tmp_assign, y_assign)
-            corrector.replace(range, replacement(x_assign))
+            corrector.replace(range, correction(tmp_assign, x_assign, y_assign))
           end
         end
 
@@ -76,6 +76,17 @@ module RuboCop
           x = lhs(x_assign)
           y = rhs(x_assign)
           "#{x}, #{y} = #{y}, #{x}"
+        end
+
+        # Keeps any comments on the replaced lines by moving them above the
+        # swap, since the replacement is a single line.
+        def correction(tmp_assign, x_assign, y_assign)
+          indent = ' ' * tmp_assign.source_range.column
+          comments = processed_source.each_comment_in_lines(
+            tmp_assign.first_line..y_assign.last_line
+          ).map { |comment| "#{indent}#{comment.text}\n" }.join
+
+          "#{comments}#{indent}#{replacement(x_assign)}"
         end
 
         def lhs(node)

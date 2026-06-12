@@ -35,7 +35,28 @@ RSpec.describe RuboCop::Cop::Style::SwapValues, :config do
     RUBY
 
     expect_correction(<<~RUBY)
+      # comment 1
+      # comment 2
+      # comment 3
       x, y = y, x
+    RUBY
+  end
+
+  it 'handles comments and keeps indentation when correcting indented code' do
+    expect_offense(<<~RUBY)
+      def foo
+        tmp = x # comment
+        ^^^^^^^ Replace this and assignments at lines 3 and 4 with `x, y = y, x`.
+        x = y
+        y = tmp
+      end
+    RUBY
+
+    expect_correction(<<~RUBY)
+      def foo
+        # comment
+        x, y = y, x
+      end
     RUBY
   end
 
