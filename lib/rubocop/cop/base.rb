@@ -498,8 +498,7 @@ module RuboCop
         patterns = cop_config[parameter]
         return default_result unless patterns
 
-        patterns = FilePatterns.from(patterns)
-        patterns.match?(config.path_relative_to_config(file)) || patterns.match?(file)
+        FilePatterns.from(patterns).match?(config.path_relative_to_config(file), file)
       end
 
       def enabled_line?(line_number)

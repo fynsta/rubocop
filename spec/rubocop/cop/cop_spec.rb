@@ -462,6 +462,25 @@ RSpec.describe RuboCop::Cop::Cop, :config do
       it { is_expected.to be(true) }
     end
 
+    context 'when the project lives in a parent directory matching the Include pattern' do
+      let(:config) do
+        RuboCop::Config.new({ cop_class.cop_name => cur_cop_config }, '/usr/src/app/.rubocop.yml')
+      end
+      let(:cop_config) { { 'Include' => ['**/app/**/*.rb'] } }
+
+      context 'and the file does not match the pattern relative to the project' do
+        let(:file) { '/usr/src/app/spec/foo.rb' }
+
+        it { is_expected.to be(false) }
+      end
+
+      context 'and the file matches the pattern relative to the project' do
+        let(:file) { '/usr/src/app/app/models/foo.rb' }
+
+        it { is_expected.to be(true) }
+      end
+    end
+
     describe 'for a cop with gem version requirements', :restore_registry do
       subject { cop.relevant_file?(file) }
 

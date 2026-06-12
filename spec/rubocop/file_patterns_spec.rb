@@ -36,6 +36,44 @@ RSpec.describe RuboCop::FilePatterns do
       file_patterns.match?('lib/a.rb')
       file_patterns.match?('lib/b.rb')
     end
+
+    context 'when given both a relative and an absolute path' do
+      let(:patterns) { ['**/app/**/*.rb'] }
+
+      it 'matches a relative pattern against the relative path' do
+        expect(file_patterns).to be_match('app/models/foo.rb', '/usr/src/app/app/models/foo.rb')
+      end
+
+      it 'does not match a relative pattern against parent directories of the absolute path' do
+        expect(file_patterns).not_to be_match('spec/foo.rb', '/usr/src/app/spec/foo.rb')
+      end
+
+      it 'matches an absolute glob pattern against the absolute path' do
+        absolute_patterns = described_class.new(['/usr/src/app/spec/**/*.rb'])
+        expect(absolute_patterns).to be_match('spec/foo.rb', '/usr/src/app/spec/foo.rb')
+      end
+
+      it 'matches an absolute exact-string pattern against the absolute path' do
+        absolute_patterns = described_class.new(['/usr/src/app/spec/foo.rb'])
+        expect(absolute_patterns).to be_match('spec/foo.rb', '/usr/src/app/spec/foo.rb')
+      end
+
+      it 'matches a relative pattern against the absolute path when the file is outside ' \
+         'the base directory' do
+        expect(file_patterns).to be_match('../demo/app/models/foo.rb',
+                                          '/usr/src/app/app/models/foo.rb')
+      end
+
+      it 'matches a Regexp pattern against the absolute path' do
+        regexp_patterns = described_class.new([/spec/])
+        expect(regexp_patterns).to be_match('lib/foo.rb', '/usr/src/spec/lib/foo.rb')
+      end
+
+      it 'matches a Regexp pattern against the relative path' do
+        regexp_patterns = described_class.new([/\Alib/])
+        expect(regexp_patterns).to be_match('lib/foo.rb', '/usr/src/project/lib/foo.rb')
+      end
+    end
   end
 
   describe '.from' do
