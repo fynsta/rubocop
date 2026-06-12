@@ -137,11 +137,17 @@ module RuboCop
           message = format(MSG, method: send_node.method_name)
 
           add_offense(send_node.loc.selector, message: message) do |corrector|
-            corrector.replace(
-              replacement_range(send_node, block_node),
-              replacement(block_node, key_expr, value_expr)
-            )
+            range = replacement_range(send_node, block_node)
+            next if comment_in_range?(range)
+
+            corrector.replace(range, replacement(block_node, key_expr, value_expr))
           end
+        end
+
+        # The replacement rebuilds the block from the key and value
+        # expressions, so comments in the replaced range would be deleted.
+        def comment_in_range?(range)
+          processed_source.comments.any? { |comment| range.contains?(comment.source_range) }
         end
 
         def replacement(block_node, key_expr, value_expr)

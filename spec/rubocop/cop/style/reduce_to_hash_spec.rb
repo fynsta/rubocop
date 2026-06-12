@@ -27,6 +27,40 @@ RSpec.describe RuboCop::Cop::Style::ReduceToHash, :config do
         RUBY
       end
 
+      it 'registers an offense but does not correct when the block has a comment on the `do` line' do
+        expect_offense(<<~RUBY)
+          array.each_with_object({}) do |elem, hash| # comment
+                ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            hash[elem.id] = elem.name
+          end
+        RUBY
+
+        expect_no_corrections
+      end
+
+      it 'registers an offense but does not correct when the block body has a comment' do
+        expect_offense(<<~RUBY)
+          array.each_with_object({}) do |elem, hash|
+                ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            # comment
+            hash[elem.id] = elem.name
+          end
+        RUBY
+
+        expect_no_corrections
+      end
+
+      it 'registers an offense and corrects when a comment follows the block' do
+        expect_offense(<<~RUBY)
+          array.each_with_object({}) { |elem, hash| hash[elem.id] = elem.name } # comment
+                ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+        RUBY
+
+        expect_correction(<<~RUBY)
+          array.to_h { |elem| [elem.id, elem.name] } # comment
+        RUBY
+      end
+
       it 'registers an offense and corrects with do...end block' do
         expect_offense(<<~RUBY)
           array.each_with_object({}) do |elem, hash|
